@@ -1,0 +1,21 @@
+# Docker
+docker
+.dockerignore
+Dockerfile
+*.Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+
+# Environment variables
+.env*
+
+# Node
+node_modules
+npm-debug.log
+
+# Other
+.next
+.git
+.gitignore
+Makefile
+.editorconfig
