@@ -15,6 +15,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { PathInfo, useAppStore, JSONAnnotatedObject, JSONAnnotation } from "~/store/app-store";
 import { cn } from "~/utils";
+import { parseServerResponse } from "~/lib/svg-parser";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,6 +112,8 @@ const SideBar = () => {
   const clear = useAppStore((s) => s.clear);
   const imageSize = useAppStore((s) => s.imageSize);
   const setImageUrl = useAppStore((s) => s.setImageUrl);
+  const clearPaths = useAppStore((s) => s.clearPaths);
+  const setPaths = useAppStore((s) => s.setPaths);
 
   const removeImage = () => {
     URL.revokeObjectURL(imageUrl);
@@ -206,6 +209,32 @@ const SideBar = () => {
 
   };
 
+
+  const importOutlinesRef = useRef<HTMLInputElement>(null);
+
+  const fileUploadInputChange = (e: any) => {
+    const uploadedFile = e.target.files[0];
+    clearPaths();
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if(e.target && e.target.result) {
+        console.log(e.target.result);
+        const svgImage = atob(e.target.result.toString().replace("data:image/svg+xml;base64,", ""));
+
+        const labels = parseServerResponse(svgImage);
+        
+        setPaths(labels);
+
+      }
+    };
+    reader.readAsDataURL(uploadedFile);
+  };
+
+  const fileUploadButtonClick = (e: any) => {
+    importOutlinesRef.current?.click();
+  };
+
   return (
     <ol role="list" className="flex flex-1 flex-col gap-y-7">
       <li className="h-[600px] space-y-4 overflow-y-auto p-4">
@@ -239,8 +268,9 @@ const SideBar = () => {
             </Button>
           </li>
           <li>
-            <Button className="w-full">
-              <Wand2Icon className="mr-2 h-5 w-5" /> Extract outlines
+          <input type="file" hidden ref={importOutlinesRef} onChange={fileUploadInputChange} accept=".svg" />
+            <Button className="w-full" onClick={fileUploadButtonClick}>
+              <Wand2Icon className="mr-2 h-5 w-5" /> Import outlines
             </Button>
           </li>
           <li className="flex gap-2">

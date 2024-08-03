@@ -18,6 +18,7 @@ interface AppState {
   setPaths: (paths: PathInfo[]) => void;
   setSelected: (index: number, selected: boolean) => void;
   clear: () => void;
+  clearPaths: () => void;
   setManualPaths: (paths: PathManualInfo[]) => void;
   setManualPathsSelected: (index: number, selected: boolean) => void;
 
@@ -172,5 +173,10 @@ export const useAppStore = create<AppState>()(
           return path;
         }),
       })),
+      clearPaths: () => 
+        set({
+          paths: [],
+          manualPaths: [],
+        }),
   })),
 );
