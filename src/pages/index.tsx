@@ -1,6 +1,21 @@
+import dynamic from "next/dynamic";
 import Head from "next/head";
 
+import { DropZone } from "~/components/DropZone";
+import { LabelerLayout } from "~/components/LabelerLayout";
+import NavBar from "~/components/NavBar";
+import { useAppStore } from "~/store/app-store";
+
+const ResizeTest = dynamic(
+  () => import("../components/ResizeTest").then((m) => m.ResizeTest),
+  {
+    ssr: false,
+  },
+);
+
 export default function Home() {
+  const imageUrl = useAppStore((state) => state.imageUrl);
+
   return (
     <>
       <Head>
@@ -20,9 +35,17 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="flex min-h-full items-center justify-center">
-        flint_and_steel
-      </main>
+      <div className="flex min-h-full flex-col">
+        <NavBar />
+        {!imageUrl && (
+          <div className="flex flex-1 p-8">
+            <DropZone />
+          </div>
+        )}
+        {imageUrl && <LabelerLayout />}
+      </div>
+
+      {/* <ResizeTest /> */}
     </>
   );
 }
