@@ -1,10 +1,11 @@
 "use client";
 
 import type { DropzoneState, FileWithPath } from "react-dropzone";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
+import { parseServerResponse } from "~/lib/svg-parser";
 import { useAppStore } from "~/store/app-store";
 import { cn } from "~/utils";
 
@@ -38,8 +39,39 @@ const DropZoneForm = ({ dropzone }: { dropzone: DropzoneState }) => {
   );
 };
 
+export const fetchWithProgress = (
+  url: string,
+  opts: {
+    headers?: Headers;
+    method?: string;
+    body?: string | FormData;
+  } = {},
+  onProgress?: (this: XMLHttpRequest, progress: ProgressEvent) => void,
+) => {
+  return new Promise<XMLHttpRequest>((res, rej) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(opts.method ?? "get", url);
+    opts.headers &&
+      Object.keys(opts.headers).forEach(
+        (h) =>
+          opts.headers && xhr.setRequestHeader(h, opts.headers.get(h) ?? ""),
+      );
+    xhr.onload = (e) => {
+      res(e.target as XMLHttpRequest);
+    };
+
+    xhr.onerror = rej;
+    if (xhr.upload && onProgress) xhr.upload.onprogress = onProgress;
+    xhr.send(opts.body);
+  });
+};
+
 export const DropZone = () => {
   const setImageUrl = useAppStore((s) => s.setImageUrl);
+  const setIsLoadingServerData = useAppStore((s) => s.setIsLoadingServerData);
+  const setPaths = useAppStore((s) => s.setPaths);
+
+  const [progress, setProgress] = useState<number>(0);
 
   const onDrop = useCallback(
     (acceptedFiles: FileWithPath[]) => {
@@ -55,8 +87,35 @@ export const DropZone = () => {
       const preview = URL.createObjectURL(file);
       console.log(preview);
       setImageUrl(preview);
+
+      // Prepare file
+      const formData = new FormData();
+      formData.append("data", file);
+
+      // Show loading
+      setIsLoadingServerData(true);
+
+      fetchWithProgress(
+        "/api/upload",
+        {
+          method: "POST",
+          body: formData,
+        },
+        (progressEvent) => {
+          setProgress((progressEvent.loaded / progressEvent.total) * 100);
+        },
+      )
+        .then((res) => {
+          setPaths(parseServerResponse(res.responseText));
+        })
+        .catch((err) => {
+          console.log(err);
+        })
+        .finally(() => {
+          setIsLoadingServerData(false);
+        });
     },
-    [setImageUrl],
+    [setImageUrl, setIsLoadingServerData],
   );
 
   const dropzone = useDropzone({
