@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   DownloadIcon,
@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
-import { useAppStore } from "~/store/app-store";
+import { PathInfo, useAppStore } from "~/store/app-store";
+import { cn } from "~/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,14 +38,42 @@ const ResizeTest = dynamic(
   },
 );
 
-const LabelEntry = ({ label }: { label: string }) => {
+const LabelEntry = ({ path, index }: { path: PathInfo; index: number }) => {
+  const imageSize = useAppStore((s) => s.imageSize);
+  const setSelected = useAppStore((s) => s.setSelected);
+  const [isSelected, setIsSelected] = useState(path.selected);
+
+  const onClick = () => {
+    setIsSelected((v) => !v);
+    setSelected(index, !path.selected);
+  };
+
   return (
-    <div className="flex rounded border p-4">
-      <img
-        src="https://via.placeholder.com/40"
+    <div
+      className={cn(
+        "flex rounded-md border p-2 ring-inset hover:cursor-pointer hover:ring-2 hover:ring-blue-600",
+        {
+          "ring-1 ring-blue-600": isSelected,
+        },
+      )}
+      onClick={onClick}>
+      {/* <img
+        src={`<svg width="${imageSize.width}" height="${imageSize.width}"><path d="${path}" fill="none" stroke="black" stroke-width="1"></path></svg>`}
         className="mr-4 aspect-square"
-      />
-      <span className="font-bold">{label}</span>
+      /> */}
+      <svg
+        viewBox={`0 0 ${imageSize.width} ${imageSize.width}`}
+        className="h-24 w-24">
+        <path
+          d={path.path}
+          fill="#ff00ff30"
+          stroke="magenta"
+          stroke-width="50"></path>
+      </svg>
+      <div className="ml-2 flex flex-col items-center justify-center">
+        <span className="font-bold">{path.label}</span>
+        {/* <span className="text-xs">Oly gay</span> */}
+      </div>
     </div>
   );
 };
@@ -60,13 +89,13 @@ const SideBar = () => {
   };
 
   return (
-    <ol role="list" className="flex flex-1 flex-col gap-y-7 p-4">
-      <li className="h-72 space-y-4 overflow-y-auto">
+    <ol role="list" className="flex flex-1 flex-col gap-y-7">
+      <li className="h-[600px] space-y-4 overflow-y-auto p-4">
         {paths.map((v, i) => (
-          <LabelEntry key={i} label={v.label} />
+          <LabelEntry key={i} path={v} index={i} />
         ))}
       </li>
-      <li className="mt-auto">
+      <li className="mt-auto p-4">
         <ul role="list" className="space-y-2">
           <li>
             <Button

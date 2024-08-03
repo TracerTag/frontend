@@ -6,6 +6,8 @@ import type {
 } from "svg-parser";
 import { parse } from "svg-parser";
 
+import { type PathInfo } from "~/store/app-store";
+
 const isNode = (node: unknown): node is SvgNode => {
   return isTextNode(node) || isElementNode(node);
 };
@@ -61,7 +63,7 @@ const isRootNode = (node: unknown): node is RootNode => {
 export const parseServerResponse = (svgBody: string) => {
   const parsed = parse(svgBody);
 
-  const labels: { path: string; label: string }[] = [];
+  const labels: PathInfo[] = [];
 
   if (isElementNode(parsed.children[0])) {
     for (const child of parsed.children[0].children) {
@@ -80,6 +82,7 @@ export const parseServerResponse = (svgBody: string) => {
         labels.push({
           path: child.properties?.d as string,
           label,
+          selected: true,
         });
       }
     }

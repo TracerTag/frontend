@@ -187,19 +187,25 @@ export const ResizeTest = () => {
             height={canvasDimensions.height}
             style={data.scalingStyle}>
             <Layer>
-              {paths.map((label, i) => (
-                <Path
-                  key={i}
-                  data={label.path}
-                  lineCap="round"
-                  lineJoin="round"
-                  stroke="magenta"
-                  fill="#ff00ff30"
-                  scaleX={canvasDimensions.scale}
-                  scaleY={canvasDimensions.scale}
-                  strokeWidth={5}
-                />
-              ))}
+              {paths.map((label, i) => {
+                if (!label.selected) {
+                  return null;
+                }
+
+                return (
+                  <Path
+                    key={i}
+                    data={label.path}
+                    lineCap="round"
+                    lineJoin="round"
+                    stroke="magenta"
+                    fill="#ff00ff30"
+                    scaleX={canvasDimensions.scale}
+                    scaleY={canvasDimensions.scale}
+                    strokeWidth={5}
+                  />
+                );
+              })}
             </Layer>
           </Stage>
         </div>

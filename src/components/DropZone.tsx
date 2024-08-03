@@ -115,7 +115,7 @@ export const DropZone = () => {
           setIsLoadingServerData(false);
         });
     },
-    [setImageUrl, setIsLoadingServerData],
+    [setImageUrl, setIsLoadingServerData, setPaths],
   );
 
   const dropzone = useDropzone({
