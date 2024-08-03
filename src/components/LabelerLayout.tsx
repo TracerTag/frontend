@@ -9,13 +9,20 @@ import {
   PencilOffIcon,
   SparklesIcon,
   Trash2Icon,
+  UploadIcon,
   Wand2Icon,
+  XIcon,
 } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
-import { PathInfo, useAppStore, JSONAnnotatedObject, JSONAnnotation } from "~/store/app-store";
-import { cn } from "~/utils";
 import { parseServerResponse } from "~/lib/svg-parser";
+import {
+  JSONAnnotatedObject,
+  JSONAnnotation,
+  PathInfo,
+  useAppStore,
+} from "~/store/app-store";
+import { cn } from "~/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,8 +130,8 @@ const SideBar = () => {
   // Function to download some generic data
   const downloadData = (data: string, type: string, filename: string) => {
     // Download the SVG
-    const blob = new Blob([data], {type: type});
-    
+    const blob = new Blob([data], { type: type });
+
     // Use a temporary 'a' element to download the data
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -148,14 +155,14 @@ const SideBar = () => {
 
     for (const path of paths) {
       // Get the currently processed element
-      if(path.selected) {
+      if (path.selected) {
         // Create the path element
         const pathElement = document.createElementNS(svgns, "path");
         pathElement.setAttributeNS(svgns, "d", path.path);
         pathElement.setAttributeNS(svgns, "fill", "none");
         pathElement.setAttributeNS(svgns, "stroke", "black");
         pathElement.setAttributeNS(svgns, "stroke-width", "1");
-        
+
         // Create the description attribute and add it to the path element
         const descriptionElement = document.createElementNS(svgns, "desc");
         descriptionElement.textContent = path.label;
@@ -168,14 +175,11 @@ const SideBar = () => {
     downloadData(svg.outerHTML, "image/svg+xml", "annotations.svg");
   };
 
-
-
   const exportJSON = () => {
-    
     const jsonObject: JSONAnnotation = {
-        width: imageSize.width,
-        height: imageSize.height,
-        objects: []
+      width: imageSize.width,
+      height: imageSize.height,
+      objects: [],
     };
 
     for (const path of paths) {
@@ -185,53 +189,63 @@ const SideBar = () => {
 
       const current_object: JSONAnnotatedObject = {
         object_class: path.label,
-        points: []
+        points: [],
       };
 
       const cleanedPath = path.path.replace("M ", "").replace("Z ", "").trim();
 
-      const pointsTuples = cleanedPath.split(" ")
+      const pointsTuples = cleanedPath.split(" ");
 
       for (const pointTuple of pointsTuples) {
-        const coords = pointTuple.split(",")
-        if(coords.length < 2) {
+        const coords = pointTuple.split(",");
+        if (coords.length < 2) {
           continue;
         }
         current_object.points.push([Number(coords[0]), Number(coords[1])]);
       }
 
       jsonObject.objects.push(current_object);
-
     }
 
-
-    downloadData(JSON.stringify(jsonObject), "application/json", "annotations.json")
-
+    downloadData(
+      JSON.stringify(jsonObject),
+      "application/json",
+      "annotations.json",
+    );
   };
-
 
   const importOutlinesRef = useRef<HTMLInputElement>(null);
 
-  const fileUploadInputChange = (e: any) => {
-    const uploadedFile = e.target.files[0];
+  const fileUploadInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = e.target.files;
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      return;
+    }
     clearPaths();
-    
+    const uploadedFile = uploadedFiles[0]!;
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      if(e.target && e.target.result) {
+      if (e.target?.result) {
         console.log(e.target.result);
-        const svgImage = atob(e.target.result.toString().replace("data:image/svg+xml;base64,", ""));
+
+        if (typeof e.target.result !== "string") {
+          return;
+        }
+
+        const svgImage = atob(
+          e.target.result.toString().replace("data:image/svg+xml;base64,", ""),
+        );
 
         const labels = parseServerResponse(svgImage);
-        
-        setPaths(labels);
 
+        setPaths(labels);
       }
     };
     reader.readAsDataURL(uploadedFile);
   };
 
-  const fileUploadButtonClick = (e: any) => {
+  const fileUploadButtonClick = (e: React.MouseEvent<HTMLElement>) => {
     importOutlinesRef.current?.click();
   };
 
@@ -268,22 +282,22 @@ const SideBar = () => {
             </Button>
           </li>
           <li>
-          <input type="file" hidden ref={importOutlinesRef} onChange={fileUploadInputChange} accept=".svg" />
+            <input
+              type="file"
+              hidden
+              ref={importOutlinesRef}
+              onChange={fileUploadInputChange}
+              accept=".svg"
+            />
             <Button className="w-full" onClick={fileUploadButtonClick}>
-              <Wand2Icon className="mr-2 h-5 w-5" /> Import outlines
+              <UploadIcon className="mr-2 h-5 w-5" /> Import outlines
             </Button>
           </li>
           <li className="flex gap-2">
-            <Button 
-            className="flex-1"
-            onClick={exportSVG}
-            >
-              <DownloadIcon className="mr-2 h-5 w-5" /> SVG 
+            <Button className="flex-1" onClick={exportSVG}>
+              <DownloadIcon className="mr-2 h-5 w-5" /> SVG
             </Button>
-            <Button 
-              className="flex-1"
-              onClick={exportJSON}
-            >
+            <Button className="flex-1" onClick={exportJSON}>
               <DownloadIcon className="mr-2 h-5 w-5" /> JSON
             </Button>
           </li>
@@ -301,6 +315,7 @@ export const LabelerLayout = () => {
   const options = useAppStore((s) => s.options);
   const toggleShowUnder = useAppStore((s) => s.toggleImageUnder);
   const toggleEditMode = useAppStore((s) => s.toggleEditMode);
+  const clearPaths = useAppStore((s) => s.clearPaths);
 
   return (
     <>
@@ -343,6 +358,13 @@ export const LabelerLayout = () => {
             ) : (
               <PencilIcon className="h-6 w-6" />
             )}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="rounded-full"
+            onClick={clearPaths}>
+            <XIcon className="h-6 w-6" />
           </Button>
         </div>
       </footer>
