@@ -8,6 +8,7 @@ interface AppState {
   setImageUrl: (imageUrl: string) => void;
   setIsLoadingServerData: (isLoadingServerData: boolean) => void;
   setPaths: (paths: PathInfo[]) => void;
+  clear: () => void;
 }
 
 export type PathInfo = {
@@ -24,5 +25,6 @@ export const useAppStore = create<AppState>()(
     setIsLoadingServerData: (isLoadingServerData: boolean) =>
       set({ isLoadingServerData }),
     setPaths: (paths: PathInfo[]) => set({ paths }),
+    clear: () => set({ imageUrl: "", paths: [] }),
   })),
 );

@@ -49,11 +49,11 @@ const LabelEntry = ({ label }: { label: string }) => {
 const SideBar = () => {
   const imageUrl = useAppStore((s) => s.imageUrl);
   const paths = useAppStore((s) => s.paths);
-  const setImageUrl = useAppStore((s) => s.setImageUrl);
+  const clear = useAppStore((s) => s.clear);
 
   const removeImage = () => {
     URL.revokeObjectURL(imageUrl);
-    setImageUrl("");
+    clear();
   };
 
   return (
