@@ -111,7 +111,7 @@ const SideBar = () => {
     // We create a valid SVG taking only the selected paths
     // variable for the namespace
     const svgns = "http://www.w3.org/2000/svg";
-    var svg = document.createElementNS(svgns, "svg");
+    const svg = document.createElementNS(svgns, "svg");
     svg.setAttributeNS(svgns, "width", imageSize.width.toString());
     svg.setAttributeNS(svgns, "height", imageSize.height.toString());
     svg.setAttribute("xmlns", svgns);
