@@ -30,9 +30,12 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 
-const Canvas = dynamic(() => import("./Canvas").then((m) => m.Canvas), {
-  ssr: false,
-});
+const ResizeTest = dynamic(
+  () => import("./ResizeTest").then((m) => m.ResizeTest),
+  {
+    ssr: false,
+  },
+);
 
 const LabelEntry = ({ label }: { label: string }) => {
   return (
@@ -102,10 +105,11 @@ export const LabelerLayout = () => {
       <div className="flex flex-1 items-stretch justify-center">
         {/* Main */}
         <div className="relative flex flex-1 flex-col items-center justify-center overflow-visible px-12 py-9">
-          <div className="relative h-auto w-full" ref={containerRef}>
-            {/* <Canvas containerRef={containerRef} /> */}
+          {/* <div className="relative h-auto w-full" ref={containerRef}>
+
             <img src={imageUrl} />
-          </div>
+          </div> */}
+          <ResizeTest />
         </div>
 
         {/* Sidebar */}

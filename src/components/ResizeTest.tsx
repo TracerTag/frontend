@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Konva from "konva";
+import { Layer, Path, Stage } from "react-konva";
 
+import { parseServerResponse } from "~/lib/svg-parser";
 import { useAppStore } from "~/store/app-store";
 
 const isResizeObserverSizeArray = (
@@ -76,105 +78,130 @@ const handleImageScale = (data: HTMLImageElement) => {
 };
 
 export const ResizeTest = () => {
-  // const imageUrl = useAppStore((state) => state.imageUrl);
+  const imageUrl = useAppStore((state) => state.imageUrl);
+  const paths = useAppStore((state) => state.paths);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const stageRef = useRef<Konva.Stage>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  // const imageClone = useRef(new window.Image());
+  const [data, setData] = useState({
+    scalingStyle: {},
+    scaledDimensionsStyle: {},
+    scaledWidth: 0,
+    scaledHeight: 0,
+    containerWidth: 0,
+    containerHeight: 0,
+  });
 
-  // const konvaRef = useRef<Konva.Stage>(null);
-  // const [scale, setScale] = useState<{
-  //   height: number;
-  //   width: number;
-  //   scale: number;
-  //   uploadScale: number;
-  // }>({
-  //   height: 0,
-  //   width: 0,
-  //   scale: 0,
-  //   uploadScale: 0,
-  // });
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image) {
+      return;
+    }
 
-  // useEffect(() => {
-  //   imageClone.current.src = "/tag.png";
-  //   imageClone.current.onload = () => {
-  //     setScale(handleImageScale(imageClone.current));
-  //     console.log(handleImageScale(imageClone.current));
-  //   };
-  // }, [imageClone]);
+    const handleLoad = () => {
+      setImageLoaded(true);
+    };
 
-  // const MAX_CANVAS_AREA = 1677721;
-  // const w = scale!.width;
-  // const h = scale!.height;
-  // const area = w * h;
-  // const canvasScale =
-  //   area > MAX_CANVAS_AREA ? Math.sqrt(MAX_CANVAS_AREA / (w * h)) : 1;
-  // const canvasDimensions = {
-  //   width: Math.floor(w * canvasScale),
-  //   height: Math.floor(h * canvasScale),
-  // };
-  // console.log("A", canvasDimensions.width, canvasDimensions.height);
+    const handleLoadStart = () => {
+      setImageLoaded(false);
+    };
 
-  // const [scaledDimensionsStyle, setScaledDimensionsStyle] = useState(
-  //   resizer.scaledDimensionsStyle,
-  // );
+    image.addEventListener("load", handleLoad);
+    image.addEventListener("loadstart", handleLoadStart);
 
-  // const resizeObserver = new ResizeObserver((entries) => {
-  //   for (const entry of entries) {
-  //     if (entry.target === containerRef.current) {
-  //       let width;
-  //       let height;
-  //       if (entry.contentBoxSize) {
-  //         // Firefox implements `contentBoxSize` as a single content rect, rather than an array
-  //         const contentBoxSize = (
-  //           isResizeObserverSizeArray(entry.contentBoxSize)
-  //             ? entry.contentBoxSize[0]!
-  //             : entry.contentBoxSize
-  //         ) as ResizeObserverSize;
-  //         width = contentBoxSize.inlineSize;
-  //         height = contentBoxSize.blockSize;
-  //       } else {
-  //         width = entry.contentRect.width;
-  //         height = entry.contentRect.height;
-  //       }
+    return () => {
+      image.removeEventListener("load", handleLoad);
+      image.removeEventListener("loadstart", handleLoadStart);
+    };
+  }, []);
 
-  //       const data = canvasScaleR({
-  //         width: canvasDimensions.width,
-  //         height: canvasDimensions.height,
-  //         containerWidth: width,
-  //         containerHeight: height,
-  //       });
+  const canvasDimensions = useMemo(() => {
+    if (!imageRef.current) {
+      return { width: 0, height: 0, scale: 1 };
+    }
 
-  //       console.log(data);
-  //       // setCanvasWidth(resized.scaledWidth);
-  //       // setCanvasHeight(resized.scaledHeight);
-  //       // setScaledDimensionsStyle(resized.scaledDimensionsStyle);
-  //       // setScalingStyle(resized.scalingStyle);
-  //     }
-  //   }
-  // });
+    if (!imageLoaded) {
+      return { width: 0, height: 0, scale: 1 };
+    }
 
-  // useEffect(() => {
-  //   const container = containerRef.current;
+    const MAX_CANVAS_AREA = 1677721;
+    const w = imageRef.current.naturalWidth;
+    const h = imageRef.current.naturalHeight;
+    const area = w * h;
+    const canvasScale =
+      area > MAX_CANVAS_AREA ? Math.sqrt(MAX_CANVAS_AREA / (w * h)) : 1;
+    return {
+      width: Math.floor(w * canvasScale),
+      height: Math.floor(h * canvasScale),
+      scale: canvasScale,
+    };
+  }, [imageRef, imageLoaded]);
 
-  //   // setCanvasScale(canvasScale);
-  //   // setCanvasWidth(resizer.scaledWidth);
-  //   // setCanvasHeight(resizer.scaledHeight);
-  //   if (container) {
-  //     resizeObserver.observe(container);
-  //   }
-  //   return () => {
-  //     if (container) {
-  //       resizeObserver.unobserve(container);
-  //     }
-  //   };
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+
+        const data = canvasScaleR({
+          width: canvasDimensions?.width ?? 0,
+          height: canvasDimensions?.height ?? 0,
+          containerWidth: width,
+          containerHeight: height,
+        });
+
+        setData(data);
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.unobserve(container);
+    };
+  }, [canvasDimensions]);
+
+  // const labels = useMemo(() => {
+  //   return parseServerResponse(svgMock);
   // }, []);
 
   return (
-    <div className="relative h-full w-full bg-red-500 p-8" ref={containerRef}>
+    <div className="relative h-full w-full p-8" ref={containerRef}>
       <div className="absolute left-1/2 top-1/2 h-auto w-auto -translate-x-1/2 -translate-y-1/2">
-        <div className="Canvas relative" style={{}}>
-          <img src="/sample.png" className="absolute h-full w-full" />
+        <div className="relative" style={data.scaledDimensionsStyle}>
+          <img
+            ref={imageRef}
+            src={imageUrl}
+            className="absolute h-full w-full"
+          />
+          <Stage
+            ref={stageRef}
+            width={canvasDimensions.width}
+            height={canvasDimensions.height}
+            style={data.scalingStyle}>
+            <Layer>
+              {paths.map((label, i) => (
+                <Path
+                  key={i}
+                  data={label.path}
+                  lineCap="round"
+                  lineJoin="round"
+                  stroke="magenta"
+                  fill="#ff00ff30"
+                  scaleX={canvasDimensions.scale}
+                  scaleY={canvasDimensions.scale}
+                  strokeWidth={5}
+                />
+              ))}
+            </Layer>
+          </Stage>
         </div>
       </div>
     </div>
