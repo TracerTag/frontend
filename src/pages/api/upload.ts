@@ -35,7 +35,7 @@ const processUpload = async (req: NextApiRequest) => {
       formData.append(
         "file",
         new Blob([body], { type: mimetype }),
-        mimetype === "image/jpg" ? "image.jpg" : "image.png",
+        mimetype === "image/jpeg" ? "image.jpg" : "image.png",
       );
 
       console.log(formData);
@@ -43,7 +43,7 @@ const processUpload = async (req: NextApiRequest) => {
       console.log(new Blob([body], { type: mimetype }));
 
       fetch(
-        "http://ec2-15-160-111-224.eu-south-1.compute.amazonaws.com/upload-image/",
+        "http://ec2-15-160-111-224.eu-south-1.compute.amazonaws.com:8080/upload-image/",
         {
           method: "POST",
           body: formData,
