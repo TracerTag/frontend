@@ -7,6 +7,7 @@ import type {
 import { parse } from "svg-parser";
 import { useAppStore } from "~/store/app-store";
 
+import { colors } from "~/constants/color";
 import { type PathInfo } from "~/store/app-store";
 
 const isNode = (node: unknown): node is SvgNode => {
@@ -65,11 +66,14 @@ export const parseServerResponse = (svgBody: string) => {
   const parsed = parse(svgBody);
 
   const labels: PathInfo[] = [];
+  let i = 0;
+  const setColors = new Map<string, string>();
 
   if (isElementNode(parsed.children[0])) {
     for (const child of parsed.children[0].children) {
       if (isElementNode(child) && child.tagName === "path") {
         let label = "unknown";
+        let color = colors[i % colors.length] as string;
 
         if (
           isElementNode(child.children[0]) &&
@@ -78,12 +82,21 @@ export const parseServerResponse = (svgBody: string) => {
           child.children[0].children[0].value
         ) {
           label = child.children[0].children[0].value as string;
+
+          // Check already assigned color
+          if (setColors.has(label)) {
+            color = setColors.get(label)!;
+          } else {
+            setColors.set(label, color);
+            i++;
+          }
         }
 
         labels.push({
           path: child.properties?.d as string,
           label,
           selected: true,
+          color: color,
         });
       }
     }

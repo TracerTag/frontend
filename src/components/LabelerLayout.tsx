@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   DownloadIcon,
+  EyeIcon,
+  EyeOffIcon,
   Loader2Icon,
+  PencilIcon,
+  PencilOffIcon,
   SparklesIcon,
   Trash2Icon,
   Wand2Icon,
@@ -38,14 +42,31 @@ const ResizeTest = dynamic(
   },
 );
 
-const LabelEntry = ({ path, index }: { path: PathInfo; index: number }) => {
+const LabelEntry = ({
+  path,
+  index,
+  isManual,
+}: {
+  path: PathInfo;
+  index: number;
+  isManual: boolean;
+}) => {
   const imageSize = useAppStore((s) => s.imageSize);
   const setSelected = useAppStore((s) => s.setSelected);
-  const [isSelected, setIsSelected] = useState(path.selected);
+  const setManualPathsSelected = useAppStore((s) => s.setManualPathsSelected);
+  const [label, setLabel] = useState(path.label);
+  const editLabel = useAppStore((s) => s.editLabel);
+
+  useEffect(() => {
+    editLabel(index, label);
+  }, [editLabel, index, label]);
 
   const onClick = () => {
-    setIsSelected((v) => !v);
-    setSelected(index, !path.selected);
+    if (!isManual) {
+      setSelected(index, !path.selected);
+    } else {
+      setManualPathsSelected(index, !path.selected);
+    }
   };
 
   return (
@@ -53,7 +74,7 @@ const LabelEntry = ({ path, index }: { path: PathInfo; index: number }) => {
       className={cn(
         "flex rounded-md border p-2 ring-inset hover:cursor-pointer hover:ring-2 hover:ring-blue-600",
         {
-          "ring-1 ring-blue-600": isSelected,
+          "ring-1 ring-blue-600": path.selected,
         },
       )}
       onClick={onClick}>
@@ -66,12 +87,17 @@ const LabelEntry = ({ path, index }: { path: PathInfo; index: number }) => {
         className="h-24 w-24">
         <path
           d={path.path}
-          fill="#ff00ff30"
-          stroke="magenta"
+          stroke={path.selected ? path.color : "#3f3f46"}
+          fill={path.selected ? `${path.color}30` : "#3f3f4630"}
           stroke-width="50"></path>
       </svg>
-      <div className="ml-2 flex flex-col items-center justify-center">
-        <span className="font-bold">{path.label}</span>
+      <div className="ml-2 flex flex-1 flex-col items-center justify-center">
+        <input
+          className="w-full font-bold"
+          size={1}
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
         {/* <span className="text-xs">Oly gay</span> */}
       </div>
     </div>
@@ -81,6 +107,7 @@ const LabelEntry = ({ path, index }: { path: PathInfo; index: number }) => {
 const SideBar = () => {
   const imageUrl = useAppStore((s) => s.imageUrl);
   const paths = useAppStore((s) => s.paths);
+  const manualPaths = useAppStore((s) => s.manualPaths);
   const clear = useAppStore((s) => s.clear);
   const imageSize = useAppStore((s) => s.imageSize);
   const setImageUrl = useAppStore((s) => s.setImageUrl);
@@ -183,8 +210,23 @@ const SideBar = () => {
     <ol role="list" className="flex flex-1 flex-col gap-y-7">
       <li className="h-[600px] space-y-4 overflow-y-auto p-4">
         {paths.map((v, i) => (
-          <LabelEntry key={i} path={v} index={i} />
+          <LabelEntry key={i} path={v} index={i} isManual={false} />
         ))}
+        {manualPaths.map((v, i) => {
+          const path: PathInfo = {
+            selected: v.selected,
+            color: v.color,
+            label: v.label,
+            path:
+              v.points
+                .map((c, i) => (i ? `${c.x} ${c.y}` : `M${c.x} ${c.y}`))
+                .join(" ") + "Z",
+          };
+
+          return (
+            <LabelEntry key={"manual" + i} path={path} index={i} isManual />
+          );
+        })}
       </li>
       <li className="mt-auto p-4">
         <ul role="list" className="space-y-2">
@@ -226,6 +268,10 @@ export const LabelerLayout = () => {
   const imageUrl = useAppStore((s) => s.imageUrl);
   const isLoadingServerData = useAppStore((s) => s.isLoadingServerData);
 
+  const options = useAppStore((s) => s.options);
+  const toggleShowUnder = useAppStore((s) => s.toggleImageUnder);
+  const toggleEditMode = useAppStore((s) => s.toggleEditMode);
+
   return (
     <>
       <div className="flex flex-1 items-stretch justify-center">
@@ -243,6 +289,33 @@ export const LabelerLayout = () => {
           <SideBar />
         </section>
       </div>
+
+      <footer className="fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 rounded-full bg-gray-300">
+        <div className="flex gap-2 p-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="rounded-full"
+            onClick={toggleShowUnder}>
+            {options.showImageUnder ? (
+              <EyeOffIcon className="h-6 w-6" />
+            ) : (
+              <EyeIcon className="h-6 w-6" />
+            )}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="rounded-full"
+            onClick={toggleEditMode}>
+            {options.editMode ? (
+              <PencilOffIcon className="h-6 w-6" />
+            ) : (
+              <PencilIcon className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+      </footer>
 
       <AlertDialog open={isLoadingServerData}>
         <AlertDialogContent>

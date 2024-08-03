@@ -2,7 +2,7 @@
 
 import type { DropzoneState, FileWithPath } from "react-dropzone";
 import { useCallback, useState } from "react";
-import { ImageIcon } from "lucide-react";
+import { ImageUpIcon } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 import { parseServerResponse } from "~/lib/svg-parser";
@@ -20,7 +20,7 @@ const DropZoneForm = ({ dropzone }: { dropzone: DropzoneState }) => {
       )}
       {...dropzone.getRootProps()}>
       <div className="text-center">
-        <ImageIcon
+        <ImageUpIcon
           className="mx-auto h-12 w-12 text-gray-300"
           aria-hidden="true"
         />
@@ -75,7 +75,6 @@ export const DropZone = () => {
 
   const onDrop = useCallback(
     (acceptedFiles: FileWithPath[]) => {
-      // Do something with the files
       console.log(acceptedFiles);
 
       const file = acceptedFiles[0];

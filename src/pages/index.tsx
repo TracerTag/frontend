@@ -6,13 +6,6 @@ import { LabelerLayout } from "~/components/LabelerLayout";
 import NavBar from "~/components/NavBar";
 import { useAppStore } from "~/store/app-store";
 
-const ResizeTest = dynamic(
-  () => import("../components/ResizeTest").then((m) => m.ResizeTest),
-  {
-    ssr: false,
-  },
-);
-
 export default function Home() {
   const imageUrl = useAppStore((state) => state.imageUrl);
 
@@ -44,8 +37,6 @@ export default function Home() {
         )}
         {imageUrl && <LabelerLayout />}
       </div>
-
-      {/* <ResizeTest /> */}
     </>
   );
 }

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Konva from "konva";
-import { Layer, Path, Stage } from "react-konva";
+import { Layer, Line, Path, Stage } from "react-konva";
 
 import { parseServerResponse } from "~/lib/svg-parser";
-import { useAppStore } from "~/store/app-store";
+import { PathManualInfo, useAppStore } from "~/store/app-store";
+import { cn } from "~/utils";
 
 const isResizeObserverSizeArray = (
   value: ResizeObserverSize | readonly ResizeObserverSize[],
@@ -77,9 +78,22 @@ const handleImageScale = (data: HTMLImageElement) => {
   return { height: h, width: w, scale, uploadScale };
 };
 
+const getRelativePointerPosition = (node: Konva.Stage) => {
+  const transform = node.getAbsoluteTransform().copy();
+  transform.invert();
+  const pos = node.getStage().getPointerPosition();
+
+  if (!pos) {
+    return { x: 0, y: 0 };
+  }
+
+  return transform.point(pos);
+};
+
 export const ResizeTest = () => {
   const imageUrl = useAppStore((state) => state.imageUrl);
   const paths = useAppStore((state) => state.paths);
+  const setSelected = useAppStore((s) => s.setSelected);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -171,6 +185,13 @@ export const ResizeTest = () => {
   // const labels = useMemo(() => {
   //   return parseServerResponse(svgMock);
   // }, []);
+  const options = useAppStore((s) => s.options);
+  const toggleDrawing = useAppStore((s) => s.toggleIsDrawing);
+  const isDrawing = useAppStore((s) => s.isDrawing);
+
+  const manualPaths = useAppStore((s) => s.manualPaths);
+  const setManualPaths = useAppStore((s) => s.setManualPaths);
+  const setManualPathsSelected = useAppStore((s) => s.setManualPathsSelected);
 
   return (
     <div className="relative h-full w-full p-8" ref={containerRef}>
@@ -179,30 +200,142 @@ export const ResizeTest = () => {
           <img
             ref={imageRef}
             src={imageUrl}
-            className="absolute h-full w-full"
+            className={cn("absolute h-full w-full", {
+              invisible: !options.showImageUnder,
+            })}
           />
           <Stage
             ref={stageRef}
             width={canvasDimensions.width}
             height={canvasDimensions.height}
-            style={data.scalingStyle}>
+            style={data.scalingStyle}
+            // onMouseOver={(e) => {
+            //   console.log(e);
+            // }}
+            // onMouseDown={(e) => {
+            //   console.log(e);
+            // }}
+            // onTap={(e) => {
+            //   console.log(e);
+            // }}
+            // onTouchStart={(e) => {
+            //   console.log(e);
+            // }}>
+            onMouseDown={(e) => {
+              if (!options.editMode) {
+                return;
+              }
+
+              toggleDrawing();
+              const point = getRelativePointerPosition(e.target.getStage()!);
+              const region: PathManualInfo = {
+                label: "manual",
+                color: Konva.Util.getRandomColor(),
+                points: [point],
+                selected: true,
+              };
+              setManualPaths(manualPaths.concat([region]));
+            }}
+            onMouseMove={(e) => {
+              if (!isDrawing) {
+                return;
+              }
+              const lastRegion = { ...manualPaths[manualPaths.length - 1]! };
+              const point = getRelativePointerPosition(e.target.getStage()!);
+              lastRegion.points = lastRegion.points.concat([point]);
+              manualPaths.splice(manualPaths.length - 1, 1);
+              setManualPaths(manualPaths.concat([lastRegion]));
+            }}
+            onMouseUp={(e) => {
+              if (!options.editMode) {
+                return;
+              }
+
+              if (!isDrawing) {
+                return;
+              }
+              const lastRegion = manualPaths[manualPaths.length - 1]!;
+              if (lastRegion.points.length < 3) {
+                manualPaths.splice(manualPaths.length - 1, 1);
+                setManualPaths(manualPaths.concat());
+              }
+              toggleDrawing();
+            }}>
             <Layer>
               {paths.map((label, i) => {
-                if (!label.selected) {
-                  return null;
-                }
-
                 return (
                   <Path
                     key={i}
                     data={label.path}
                     lineCap="round"
                     lineJoin="round"
-                    stroke="magenta"
-                    fill="#ff00ff30"
+                    stroke={label.selected ? label.color : "#3f3f46"}
+                    fill={label.selected ? `${label.color}30` : "#3f3f4630"}
                     scaleX={canvasDimensions.scale}
                     scaleY={canvasDimensions.scale}
                     strokeWidth={5}
+                    opacity={label.selected ? 1 : 0.4}
+                    onMouseEnter={() => {
+                      if (!stageRef.current) {
+                        return;
+                      }
+
+                      stageRef.current.container().style.cursor = "pointer";
+                    }}
+                    onMouseLeave={() => {
+                      if (!stageRef.current) {
+                        return;
+                      }
+
+                      stageRef.current.container().style.cursor = "default";
+                    }}
+                    onMouseDown={() => {
+                      setSelected(i, !label.selected);
+                    }}
+                  />
+                );
+              })}
+            </Layer>
+
+            <Layer>
+              {manualPaths.map((label, i) => {
+                return (
+                  <Path
+                    key={"manual" + i}
+                    // data={label.points
+                    //   .map((p) => `${p.x},${p.y}`)
+                    //   .join(" ")}
+                    // points={label.points.flatMap((p) => [p.x, p.y])}
+                    data={
+                      label.points
+                        .map((c, i) => (i ? `${c.x} ${c.y}` : `M${c.x} ${c.y}`))
+                        .join(" ") + "Z"
+                    }
+                    lineCap="round"
+                    lineJoin="round"
+                    stroke={label.selected ? label.color : "#3f3f46"}
+                    fill={label.selected ? `${label.color}30` : "#3f3f4630"}
+                    scaleX={canvasDimensions.scale}
+                    scaleY={canvasDimensions.scale}
+                    strokeWidth={5}
+                    opacity={label.selected ? 1 : 0.4}
+                    onMouseEnter={() => {
+                      if (!stageRef.current) {
+                        return;
+                      }
+
+                      stageRef.current.container().style.cursor = "pointer";
+                    }}
+                    onMouseLeave={() => {
+                      if (!stageRef.current) {
+                        return;
+                      }
+
+                      stageRef.current.container().style.cursor = "default";
+                    }}
+                    onMouseDown={() => {
+                      setManualPathsSelected(i, !label.selected);
+                    }}
                   />
                 );
               })}
