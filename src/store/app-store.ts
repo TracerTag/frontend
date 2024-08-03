@@ -35,7 +35,7 @@ interface AppState {
   isDrawing: boolean;
   toggleIsDrawing: () => void;
 
-  editLabel: (index: number, label: string) => void;
+  editLabel: (index: number, label: string, isManual: boolean) => void;
 }
 
 export type PathInfo = {
@@ -164,19 +164,32 @@ export const useAppStore = create<AppState>()(
         }),
       })),
 
-    editLabel: (index: number, label: string) =>
-      set((state) => ({
-        paths: state.paths.map((path, i) => {
-          if (i === index) {
-            return { ...path, label };
-          }
-          return path;
-        }),
-      })),
-      clearPaths: () => 
-        set({
-          paths: [],
-          manualPaths: [],
-        }),
+    editLabel: (index: number, label: string, isManual: boolean) => {
+      if (isManual) {
+        return set((state) => ({
+          manualPaths: state.manualPaths.map((path, i) => {
+            if (i === index) {
+              return { ...path, label };
+            }
+            return path;
+          }),
+        }));
+      } else {
+        set((state) => ({
+          paths: state.paths.map((path, i) => {
+            if (i === index) {
+              return { ...path, label };
+            }
+            return path;
+          }),
+        }));
+      }
+    },
+
+    clearPaths: () =>
+      set({
+        paths: [],
+        manualPaths: [],
+      }),
   })),
 );

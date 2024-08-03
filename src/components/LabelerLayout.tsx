@@ -66,8 +66,8 @@ const LabelEntry = ({
   const editLabel = useAppStore((s) => s.editLabel);
 
   useEffect(() => {
-    editLabel(index, label);
-  }, [editLabel, index, label]);
+    editLabel(index, label, isManual);
+  }, [editLabel, index, isManual, label]);
 
   const onClick = () => {
     if (!isManual) {
@@ -153,7 +153,19 @@ const SideBar = () => {
     svg.setAttributeNS(svgns, "height", imageSize.height.toString());
     svg.setAttribute("xmlns", svgns);
 
-    for (const path of paths) {
+    const exportPaths = paths.concat(
+      manualPaths.map((v) => ({
+        selected: v.selected,
+        color: v.color,
+        label: v.label,
+        path:
+          v.points
+            .map((c, i) => (i ? `${c.x} ${c.y}` : `M${c.x} ${c.y}`))
+            .join(" ") + "Z",
+      })),
+    );
+
+    for (const path of exportPaths) {
       // Get the currently processed element
       if (path.selected) {
         // Create the path element
@@ -182,7 +194,19 @@ const SideBar = () => {
       objects: [],
     };
 
-    for (const path of paths) {
+    const exportPaths = paths.concat(
+      manualPaths.map((v) => ({
+        selected: v.selected,
+        color: v.color,
+        label: v.label,
+        path:
+          v.points
+            .map((c, i) => (i ? `${c.x},${c.y}` : `M ${c.x},${c.y}`))
+            .join(" ") + "Z ",
+      })),
+    );
+
+    for (const path of exportPaths) {
       if (!path.selected) {
         continue;
       }
