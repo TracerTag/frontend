@@ -19,6 +19,17 @@ export type PathInfo = {
   selected: boolean;
 };
 
+export type JSONAnnotation = {
+  width: number;
+  height: number;
+  objects: JSONAnnotatedObject[];
+};
+
+export type JSONAnnotatedObject = {
+  object_class: string;
+  points: [number, number][];
+};
+
 export const useAppStore = create<AppState>()(
   devtools((set, get) => ({
     imageUrl: "",

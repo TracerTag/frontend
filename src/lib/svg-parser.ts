@@ -5,6 +5,7 @@ import type {
   TextNode,
 } from "svg-parser";
 import { parse } from "svg-parser";
+import { useAppStore } from "~/store/app-store";
 
 import { type PathInfo } from "~/store/app-store";
 

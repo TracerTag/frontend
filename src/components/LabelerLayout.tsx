@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
-import { PathInfo, useAppStore } from "~/store/app-store";
+import { PathInfo, useAppStore, JSONAnnotatedObject, JSONAnnotation } from "~/store/app-store";
 import { cn } from "~/utils";
 import {
   AlertDialog,
@@ -82,10 +82,101 @@ const SideBar = () => {
   const imageUrl = useAppStore((s) => s.imageUrl);
   const paths = useAppStore((s) => s.paths);
   const clear = useAppStore((s) => s.clear);
+  const imageSize = useAppStore((s) => s.imageSize);
+  const setImageUrl = useAppStore((s) => s.setImageUrl);
 
   const removeImage = () => {
     URL.revokeObjectURL(imageUrl);
     clear();
+  };
+
+  // Function to download some generic data
+  const downloadData = (data: string, type: string, filename: string) => {
+    // Download the SVG
+    const blob = new Blob([data], {type: type});
+    
+    // Use a temporary 'a' element to download the data
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("download", filename);
+    a.setAttribute("href", url);
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportSVG = () => {
+    // We create a valid SVG taking only the selected paths
+    // variable for the namespace
+    const svgns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgns, "svg");
+    svg.setAttributeNS(svgns, "width", imageSize.width.toString());
+    svg.setAttributeNS(svgns, "height", imageSize.height.toString());
+    svg.setAttribute("xmlns", svgns);
+
+    for (const path of paths) {
+      // Get the currently processed element
+      if(path.selected) {
+        // Create the path element
+        const pathElement = document.createElementNS(svgns, "path");
+        pathElement.setAttributeNS(svgns, "d", path.path);
+        pathElement.setAttributeNS(svgns, "fill", "none");
+        pathElement.setAttributeNS(svgns, "stroke", "black");
+        pathElement.setAttributeNS(svgns, "stroke-width", "1");
+        
+        // Create the description attribute and add it to the path element
+        const descriptionElement = document.createElementNS(svgns, "desc");
+        descriptionElement.textContent = path.label;
+        pathElement.appendChild(descriptionElement);
+
+        svg.appendChild(pathElement);
+      }
+    }
+
+    downloadData(svg.outerHTML, "image/svg+xml", "annotations.svg");
+  };
+
+
+
+  const exportJSON = () => {
+    
+    const jsonObject: JSONAnnotation = {
+        width: imageSize.width,
+        height: imageSize.height,
+        objects: []
+    };
+
+    for (const path of paths) {
+      if (!path.selected) {
+        continue;
+      }
+
+      const current_object: JSONAnnotatedObject = {
+        object_class: path.label,
+        points: []
+      };
+
+      const cleanedPath = path.path.replace("M ", "").replace("Z ", "").trim();
+
+      const pointsTuples = cleanedPath.split(" ")
+
+      for (const pointTuple of pointsTuples) {
+        const coords = pointTuple.split(",")
+        if(coords.length < 2) {
+          continue;
+        }
+        current_object.points.push([Number(coords[0]), Number(coords[1])]);
+      }
+
+      jsonObject.objects.push(current_object);
+
+    }
+
+
+    downloadData(JSON.stringify(jsonObject), "application/json", "annotations.json")
+
   };
 
   return (
@@ -111,10 +202,16 @@ const SideBar = () => {
             </Button>
           </li>
           <li className="flex gap-2">
-            <Button className="flex-1">
-              <DownloadIcon className="mr-2 h-5 w-5" /> SVG
+            <Button 
+            className="flex-1"
+            onClick={exportSVG}
+            >
+              <DownloadIcon className="mr-2 h-5 w-5" /> SVG 
             </Button>
-            <Button className="flex-1">
+            <Button 
+              className="flex-1"
+              onClick={exportJSON}
+            >
               <DownloadIcon className="mr-2 h-5 w-5" /> JSON
             </Button>
           </li>
