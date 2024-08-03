@@ -59,9 +59,7 @@ const isRootNode = (node: unknown): node is RootNode => {
 };
 
 export const parseServerResponse = (svgBody: string) => {
-  const parsed = parse(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="2190" height="1230" baseProfile="tiny" version="1.2"><path fill="none" stroke="#000" d="M834.72 329.895v853.07h369.955v-853.07Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M1264.586 319.862v786.953h274.817V319.862Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M1921.584 376.554v757.208h219.306V376.554Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M329.585 396.905v741.178h221.92V396.905Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M2053.17 308.118v774.61h135.947v-774.61Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M524.992 387.502v736.9h203.442v-736.9Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M739.934 704.306v487.721h224.764v-487.72Z"><desc>bicycle</desc></path><path fill="none" stroke="#000" d="M1279.015 669.06v520.756h214.948V669.059Z"><desc>bicycle</desc></path><path fill="none" stroke="#000" d="M1608.615 369.03v771.776h307.033V369.03Z"><desc>person</desc></path><path fill="none" stroke="#000" d="M488.54 518.456v261.898h147.127V518.456Z"><desc>handbag</desc></path><path fill="none" stroke="#000" d="M1979.094 520.351v180.45h89.806V520.35Z"><desc>backpack</desc></path></svg>`,
-  );
+  const parsed = parse(svgBody);
 
   const labels: { path: string; label: string }[] = [];
 
